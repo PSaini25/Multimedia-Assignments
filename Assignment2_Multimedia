@@ -1,0 +1,115 @@
+import cv2
+import numpy as np
+
+# =========================================
+# PART 1: Drawing Shapes and Adding Text
+# =========================================
+def draw_shapes():
+    image = np.zeros((512, 512, 3), dtype=np.uint8)
+
+    # Line
+    cv2.line(image, (50, 50), (450, 50), (255, 0, 0), 2)
+
+    # Rectangle
+    cv2.rectangle(image, (50, 100), (200, 250), (0, 255, 0), 3)
+
+    # Circle
+    cv2.circle(image, (350, 180), 60, (0, 0, 255), -1)
+
+    # Ellipse
+    cv2.ellipse(image, (256, 350), (100, 50), 0, 0, 360, (255, 255, 0), 2)
+
+    # Polygon
+    pts = np.array([[300, 300], [400, 400], [250, 450], [200, 350]], np.int32)
+    pts = pts.reshape((-1, 1, 2))
+    cv2.polylines(image, [pts], True, (255, 0, 255), 3)
+
+    # Text
+    cv2.putText(image, 'Experiment-2', (120, 500),
+                cv2.FONT_HERSHEY_SIMPLEX, 0.8, (255, 255, 255), 2)
+
+    cv2.imshow("Shapes and Text", image)
+    cv2.waitKey(0)
+    cv2.destroyAllWindows()
+
+
+# =========================================
+# PART 2(a): Image Statistics
+# =========================================
+def image_statistics():
+    img1 = cv2.imread('image1.jpg', 0)
+    img2 = cv2.imread('image2.jpg', 0)
+
+    if img1 is None or img2 is None:
+        print("Error: Make sure image1.jpg and image2.jpg exist.")
+        return
+
+    img2 = cv2.resize(img2, (img1.shape[1], img1.shape[0]))
+
+    # Difference
+    diff = cv2.absdiff(img1, img2)
+
+    # Mean
+    mean1, mean2 = np.mean(img1), np.mean(img2)
+
+    # Standard deviation
+    std1, std2 = np.std(img1), np.std(img2)
+
+    # Correlation coefficient
+    corr = np.corrcoef(img1.flatten(), img2.flatten())[0, 1]
+
+    print("\n--- Image Statistics ---")
+    print("Mean Image1:", mean1)
+    print("Mean Image2:", mean2)
+    print("Std Dev Image1:", std1)
+    print("Std Dev Image2:", std2)
+    print("Correlation Coefficient:", corr)
+
+    cv2.imshow("Difference Image", diff)
+    cv2.waitKey(0)
+    cv2.destroyAllWindows()
+
+
+# =========================================
+# PART 2(b): Image Smoothing Filters
+# =========================================
+def smoothing_filters():
+    image = cv2.imread('input.jpg')
+
+    if image is None:
+        print("Error: Make sure input.jpg exists.")
+        return
+
+    # Mean Filter
+    mean = cv2.blur(image, (5, 5))
+
+    # Weighted Mean (Gaussian Filter)
+    weighted = cv2.GaussianBlur(image, (5, 5), 0)
+
+    cv2.imshow("Original", image)
+    cv2.imshow("Mean Filter", mean)
+    cv2.imshow("Weighted Mean Filter", weighted)
+
+    cv2.waitKey(0)
+    cv2.destroyAllWindows()
+
+
+# =========================================
+# MAIN FUNCTION
+# =========================================
+if __name__ == "__main__":
+    print("Select Option:")
+    print("1 - Draw Shapes")
+    print("2 - Image Statistics")
+    print("3 - Smoothing Filters")
+
+    choice = input("Enter your choice (1/2/3): ")
+
+    if choice == '1':
+        draw_shapes()
+    elif choice == '2':
+        image_statistics()
+    elif choice == '3':
+        smoothing_filters()
+    else:
+        print("Invalid choice")
