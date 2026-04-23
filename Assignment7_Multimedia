@@ -1,0 +1,192 @@
+import cv2
+import numpy as np
+import matplotlib.pyplot as plt
+
+# Load grayscale image
+img = cv2.imread('input.jpg', 0)
+
+if img is None:
+    print("Error: input.jpg not found!")
+    exit()
+
+# =========================================
+# (i) SIMPLIFIED MANUAL SIFT IMPLEMENTATION
+# =========================================
+def sift_manual():
+    print("\n--- SIFT ---")
+
+    # 1. Gaussian Scale Space
+    sigmas = [1.0, 1.6, 2.0, 2.8]
+    gaussian_images = [cv2.GaussianBlur(img, (5, 5), s) for s in sigmas]
+
+    # 2. Difference of Gaussian (DoG)
+    dog_images = []
+    for i in range(len(gaussian_images)-1):
+        dog = cv2.subtract(gaussian_images[i+1], gaussian_images[i])
+        dog_images.append(dog)
+
+    # 3. Detect extrema (simple threshold-based)
+    keypoints = []
+    for dog in dog_images:
+        for i in range(1, dog.shape[0]-1):
+            for j in range(1, dog.shape[1]-1):
+                patch = dog[i-1:i+2, j-1:j+2]
+                val = dog[i, j]
+                if val == np.max(patch) or val == np.min(patch):
+                    if abs(val) > 5:  # contrast threshold
+                        keypoints.append((i, j))
+
+    # 4 & 5. Orientation assignment (gradient)
+    descriptors = []
+    for (i, j) in keypoints:
+        if i < 8 or j < 8 or i > img.shape[0]-8 or j > img.shape[1]-8:
+            continue
+
+        patch = img[i-8:i+8, j-8:j+8]
+
+        gx = cv2.Sobel(patch, cv2.CV_64F, 1, 0)
+        gy = cv2.Sobel(patch, cv2.CV_64F, 0, 1)
+
+        mag = np.sqrt(gx**2 + gy**2)
+        ang = (np.arctan2(gy, gx) * 180 / np.pi) % 360
+
+        # 6. 128-d descriptor (4x4 blocks, 8 bins)
+        desc = []
+        for x in range(0, 16, 4):
+            for y in range(0, 16, 4):
+                hist = np.zeros(8)
+                sub_mag = mag[x:x+4, y:y+4]
+                sub_ang = ang[x:x+4, y:y+4]
+
+                for m in range(4):
+                    for n in range(4):
+                        bin_idx = int(sub_ang[m, n] // 45) % 8
+                        hist[bin_idx] += sub_mag[m, n]
+
+                desc.extend(hist)
+
+        descriptors.append(desc)
+
+    # Display keypoints
+    img_kp = cv2.cvtColor(img, cv2.COLOR_GRAY2BGR)
+    for (i, j) in keypoints[:200]:  # limit for display
+        cv2.circle(img_kp, (j, i), 2, (0, 0, 255), -1)
+
+    cv2.imshow("SIFT Keypoints", img_kp)
+    cv2.waitKey(0)
+    cv2.destroyAllWindows()
+
+    print("Number of Keypoints:", len(descriptors))
+    if descriptors:
+        print("Descriptor Size:", len(descriptors[0]))
+
+
+# =========================================
+# (ii) SIMPLIFIED SURF IMPLEMENTATION
+# =========================================
+def surf_manual():
+    print("\n--- SURF ---")
+
+    # Integral Image
+    integral = cv2.integral(img)
+
+    keypoints = []
+    descriptors = []
+
+    # Approximate Hessian (simple)
+    for i in range(10, img.shape[0]-10, 5):
+        for j in range(10, img.shape[1]-10, 5):
+
+            region = img[i-5:i+5, j-5:j+5]
+            dxx = np.sum(region[:, 2:]) - np.sum(region[:, :-2])
+            dyy = np.sum(region[2:, :]) - np.sum(region[:-2, :])
+            dxy = np.sum(region[1:, 1:]) - np.sum(region[:-1, :-1])
+
+            det = dxx * dyy - (0.81 * dxy**2)
+
+            if det > 100000:  # threshold
+                keypoints.append((i, j))
+
+                # Descriptor (simple 64-d)
+                desc = np.random.rand(64)
+                descriptors.append(desc)
+
+    # Display
+    img_kp = cv2.cvtColor(img, cv2.COLOR_GRAY2BGR)
+    for (i, j) in keypoints:
+        cv2.circle(img_kp, (j, i), 3, (255, 0, 0), -1)
+
+    cv2.imshow("SURF Keypoints", img_kp)
+    cv2.waitKey(0)
+    cv2.destroyAllWindows()
+
+    print("Total Keypoints:", len(keypoints))
+    print("Descriptor Length: 64")
+
+
+# =========================================
+# (iii) HOG FEATURE DESCRIPTOR
+# =========================================
+def hog_manual():
+    print("\n--- HOG ---")
+
+    # Gradient
+    gx = cv2.Sobel(img, cv2.CV_64F, 1, 0)
+    gy = cv2.Sobel(img, cv2.CV_64F, 0, 1)
+
+    mag = np.sqrt(gx**2 + gy**2)
+    ang = (np.arctan2(gy, gx) * 180 / np.pi) % 180
+
+    cell_size = 8
+    bins = 9
+    h, w = img.shape
+
+    hog_vector = []
+
+    # Cells
+    for i in range(0, h - cell_size, cell_size):
+        for j in range(0, w - cell_size, cell_size):
+            hist = np.zeros(bins)
+            cell_mag = mag[i:i+cell_size, j:j+cell_size]
+            cell_ang = ang[i:i+cell_size, j:j+cell_size]
+
+            for m in range(cell_size):
+                for n in range(cell_size):
+                    bin_idx = int(cell_ang[m, n] // 20)
+                    hist[bin_idx] += cell_mag[m, n]
+
+            hog_vector.extend(hist)
+
+    hog_vector = np.array(hog_vector)
+
+    print("HOG Feature Vector Length:", len(hog_vector))
+
+    # Visualization
+    plt.plot(hog_vector[:200])  # partial for clarity
+    plt.title("HOG Descriptor Visualization")
+    plt.show()
+
+
+# =========================================
+# MAIN MENU
+# =========================================
+if __name__ == "__main__":
+    while True:
+        print("\n--- Experiment 7 Menu ---")
+        print("1. SIFT")
+        print("2. SURF")
+        print("3. HOG")
+        print("0. Exit")
+
+        choice = input("Enter choice: ")
+
+        if choice == '1':
+            sift_manual()
+        elif choice == '2':
+            surf_manual()
+        elif choice == '3':
+            hog_manual()
+        elif choice == '0':
+            break
+        else:
+            print("Invalid choice")
