@@ -1,0 +1,95 @@
+import cv2
+import numpy as np
+
+# =========================================
+# PART 1: Draw Shapes + Add Text
+# =========================================
+def draw_shapes():
+    img = np.zeros((512, 512, 3), dtype=np.uint8)
+
+    # Line
+    cv2.line(img, (50, 50), (450, 50), (255, 0, 0), 2)
+
+    # Rectangle
+    cv2.rectangle(img, (50, 100), (200, 250), (0, 255, 0), 3)
+
+    # Circle
+    cv2.circle(img, (350, 180), 60, (0, 0, 255), -1)
+
+    # Ellipse
+    cv2.ellipse(img, (256, 350), (100, 50), 0, 0, 360, (255, 255, 0), 2)
+
+    # Polygon
+    pts = np.array([[300, 300], [400, 400], [250, 450], [200, 350]], np.int32)
+    pts = pts.reshape((-1, 1, 2))
+    cv2.polylines(img, [pts], True, (255, 0, 255), 3)
+
+    # Text
+    cv2.putText(img, 'Experiment-4', (120, 500),
+                cv2.FONT_HERSHEY_SIMPLEX, 0.8, (255, 255, 255), 2)
+
+    cv2.imshow("Shapes and Text", img)
+    cv2.waitKey(0)
+    cv2.destroyAllWindows()
+
+
+# =========================================
+# PART 2: Contrast Stretching
+# =========================================
+def contrast_stretching():
+    img = cv2.imread('input.jpg', 0)  # grayscale
+
+    if img is None:
+        print("Error: input.jpg not found!")
+        return
+
+    r1, r2 = 110, 158
+    s1, s2 = 95, 185
+
+    stretched = np.zeros_like(img)
+
+    # Apply piecewise transformation
+    for i in range(img.shape[0]):
+        for j in range(img.shape[1]):
+            r = img[i, j]
+
+            if r < r1:
+                s = (s1 / r1) * r
+            elif r1 <= r <= r2:
+                s = ((s2 - s1) / (r2 - r1)) * (r - r1) + s1
+            else:
+                s = ((255 - s2) / (255 - r2)) * (r - r2) + s2
+
+            stretched[i, j] = np.clip(s, 0, 255)
+
+    stretched = stretched.astype(np.uint8)
+
+    cv2.imshow("Original Image", img)
+    cv2.imshow("Contrast Stretched Image", stretched)
+
+    cv2.imwrite("contrast_stretched.jpg", stretched)
+
+    cv2.waitKey(0)
+    cv2.destroyAllWindows()
+
+
+# =========================================
+# MAIN MENU
+# =========================================
+if __name__ == "__main__":
+    while True:
+        print("\n--- Experiment 4 Menu ---")
+        print("1. Draw Shapes")
+        print("2. Contrast Stretching")
+        print("0. Exit")
+
+        choice = input("Enter your choice: ")
+
+        if choice == '1':
+            draw_shapes()
+        elif choice == '2':
+            contrast_stretching()
+        elif choice == '0':
+            break
+        else:
+            print("Invalid choice")
