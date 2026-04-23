@@ -1,0 +1,199 @@
+import cv2
+import numpy as np
+import matplotlib.pyplot as plt
+
+# =========================================
+# Utility: Plot Histogram
+# =========================================
+def plot_histogram(image, title="Histogram"):
+    if len(image.shape) == 2:  # Grayscale
+        plt.hist(image.ravel(), bins=256, range=[0, 256], color='black')
+    else:  # Color
+        colors = ('b', 'g', 'r')
+        for i, col in enumerate(colors):
+            hist = cv2.calcHist([image], [i], None, [256], [0, 256])
+            plt.plot(hist, color=col)
+
+    plt.title(title)
+    plt.xlabel("Pixel Intensity")
+    plt.ylabel("Frequency")
+
+
+# =========================================
+# 1. Histogram for Grayscale & Color Images
+# =========================================
+def histogram_plot():
+    gray = cv2.imread('gray.jpg', 0)
+    color = cv2.imread('color.jpg')
+
+    if gray is None or color is None:
+        print("Error: gray.jpg or color.jpg not found!")
+        return
+
+    plt.figure(figsize=(10, 5))
+
+    plt.subplot(1, 2, 1)
+    plot_histogram(gray, "Grayscale Histogram")
+
+    plt.subplot(1, 2, 2)
+    plot_histogram(color, "Color Histogram")
+
+    plt.show()
+
+
+# =========================================
+# 2. Histogram Equalization
+# =========================================
+def histogram_equalization():
+    img = cv2.imread('low_contrast.jpg', 0)
+
+    if img is None:
+        print("Error: low_contrast.jpg not found!")
+        return
+
+    equalized = cv2.equalizeHist(img)
+
+    plt.figure(figsize=(10, 8))
+
+    plt.subplot(2, 2, 1)
+    plt.imshow(img, cmap='gray')
+    plt.title("Original Image")
+    plt.axis('off')
+
+    plt.subplot(2, 2, 2)
+    plot_histogram(img, "Original Histogram")
+
+    plt.subplot(2, 2, 3)
+    plt.imshow(equalized, cmap='gray')
+    plt.title("Equalized Image")
+    plt.axis('off')
+
+    plt.subplot(2, 2, 4)
+    plot_histogram(equalized, "Equalized Histogram")
+
+    plt.show()
+
+
+# =========================================
+# 3. Histogram Matching
+# =========================================
+def histogram_matching():
+    source = cv2.imread('source.jpg', 0)
+    reference = cv2.imread('reference.jpg', 0)
+
+    if source is None or reference is None:
+        print("Error: source.jpg or reference.jpg not found!")
+        return
+
+    # Compute histograms & CDF
+    hist_src, _ = np.histogram(source.flatten(), 256, [0, 256])
+    hist_ref, _ = np.histogram(reference.flatten(), 256, [0, 256])
+
+    cdf_src = hist_src.cumsum()
+    cdf_ref = hist_ref.cumsum()
+
+    cdf_src = cdf_src / cdf_src[-1]
+    cdf_ref = cdf_ref / cdf_ref[-1]
+
+    # Create lookup table
+    lookup = np.zeros(256)
+    j = 0
+    for i in range(256):
+        while j < 255 and cdf_ref[j] < cdf_src[i]:
+            j += 1
+        lookup[i] = j
+
+    matched = cv2.LUT(source, lookup.astype(np.uint8))
+
+    plt.figure(figsize=(12, 6))
+
+    plt.subplot(2, 3, 1)
+    plt.imshow(source, cmap='gray')
+    plt.title("Source Image")
+    plt.axis('off')
+
+    plt.subplot(2, 3, 2)
+    plt.imshow(reference, cmap='gray')
+    plt.title("Reference Image")
+    plt.axis('off')
+
+    plt.subplot(2, 3, 3)
+    plt.imshow(matched, cmap='gray')
+    plt.title("Matched Image")
+    plt.axis('off')
+
+    plt.subplot(2, 3, 4)
+    plot_histogram(source, "Source Histogram")
+
+    plt.subplot(2, 3, 5)
+    plot_histogram(reference, "Reference Histogram")
+
+    plt.subplot(2, 3, 6)
+    plot_histogram(matched, "Matched Histogram")
+
+    plt.show()
+
+
+# =========================================
+# 4. Histogram Stretching
+# =========================================
+def histogram_stretching():
+    img = cv2.imread('input.jpg', 0)
+
+    if img is None:
+        print("Error: input.jpg not found!")
+        return
+
+    min_val = np.min(img)
+    max_val = np.max(img)
+
+    stretched = ((img - min_val) / (max_val - min_val)) * 255
+    stretched = stretched.astype(np.uint8)
+
+    plt.figure(figsize=(10, 6))
+
+    plt.subplot(2, 2, 1)
+    plt.imshow(img, cmap='gray')
+    plt.title("Original Image")
+    plt.axis('off')
+
+    plt.subplot(2, 2, 2)
+    plot_histogram(img, "Original Histogram")
+
+    plt.subplot(2, 2, 3)
+    plt.imshow(stretched, cmap='gray')
+    plt.title("Stretched Image")
+    plt.axis('off')
+
+    plt.subplot(2, 2, 4)
+    plot_histogram(stretched, "Stretched Histogram")
+
+    plt.show()
+
+
+# =========================================
+# MAIN MENU
+# =========================================
+if __name__ == "__main__":
+    while True:
+        print("\n--- Experiment 5 Menu ---")
+        print("1. Plot Histograms")
+        print("2. Histogram Equalization")
+        print("3. Histogram Matching")
+        print("4. Histogram Stretching")
+        print("0. Exit")
+
+        choice = input("Enter your choice: ")
+
+        if choice == '1':
+            histogram_plot()
+        elif choice == '2':
+            histogram_equalization()
+        elif choice == '3':
+            histogram_matching()
+        elif choice == '4':
+            histogram_stretching()
+        elif choice == '0':
+            break
+        else:
+            print("Invalid choice")
