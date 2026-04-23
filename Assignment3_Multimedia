@@ -1,0 +1,127 @@
+import cv2
+import numpy as np
+
+# Load 8-bit grayscale image
+image = cv2.imread('input.jpg', 0)
+
+if image is None:
+    print("Error: input.jpg not found!")
+    exit()
+
+# =========================================
+# a. Negative Transformation: s = L - 1 - r
+# =========================================
+def negative_image(img):
+    L = 256  # for 8-bit image
+    negative = L - 1 - img
+    cv2.imshow("Negative Image", negative)
+    cv2.imwrite("negative.jpg", negative)
+
+
+# =========================================
+# b. Thresholding at T = 128
+# =========================================
+def thresholding(img):
+    _, thresh = cv2.threshold(img, 128, 255, cv2.THRESH_BINARY)
+    cv2.imshow("Threshold (T=128)", thresh)
+    cv2.imwrite("threshold.jpg", thresh)
+
+
+# =========================================
+# c. Clipping (r1=64, r2=192)
+# =========================================
+def clipping(img):
+    clipped = np.copy(img)
+
+    r1, r2 = 64, 192
+    clipped[clipped < r1] = 0
+    clipped[clipped > r2] = 255
+
+    cv2.imshow("Clipped Image", clipped)
+    cv2.imwrite("clipped.jpg", clipped)
+
+
+# =========================================
+# d. Log Transformation: s = c * log(1 + r)
+# =========================================
+def log_transform(img):
+    c = 1
+    log_img = c * np.log(1 + img.astype(np.float32))
+
+    # Normalize to 0–255
+    log_img = np.array(255 * log_img / np.max(log_img), dtype=np.uint8)
+
+    cv2.imshow("Log Transformation", log_img)
+    cv2.imwrite("log.jpg", log_img)
+
+
+# =========================================
+# e. Power Law Transformation: s = c * r^p
+# =========================================
+def power_law(img):
+    c = 1
+    powers = [0.01, 0.1, 0.5, 1, 2, 5, 10, 25]
+
+    for p in powers:
+        power_img = c * np.power(img / 255.0, p)
+        power_img = np.uint8(power_img * 255)
+
+        window_name = f"Power p={p}"
+        cv2.imshow(window_name, power_img)
+        cv2.imwrite(f"power_{p}.jpg", power_img)
+
+    cv2.waitKey(0)
+    cv2.destroyAllWindows()
+
+
+# =========================================
+# f. Bit Plane Slicing (0–7)
+# =========================================
+def bit_plane_slicing(img):
+    for i in range(8):
+        bit_plane = (img >> i) & 1
+        bit_plane = np.uint8(bit_plane * 255)
+
+        window_name = f"Bit Plane {i}"
+        cv2.imshow(window_name, bit_plane)
+        cv2.imwrite(f"bit_plane_{i}.jpg", bit_plane)
+
+    cv2.waitKey(0)
+    cv2.destroyAllWindows()
+
+
+# =========================================
+# MAIN MENU
+# =========================================
+if __name__ == "__main__":
+    while True:
+        print("\n--- Experiment 3 Menu ---")
+        print("1. Negative Image")
+        print("2. Thresholding (T=128)")
+        print("3. Clipping (r1=64, r2=192)")
+        print("4. Log Transformation")
+        print("5. Power Law Transformation")
+        print("6. Bit Plane Slicing")
+        print("0. Exit")
+
+        choice = input("Enter your choice: ")
+
+        if choice == '1':
+            negative_image(image)
+        elif choice == '2':
+            thresholding(image)
+        elif choice == '3':
+            clipping(image)
+        elif choice == '4':
+            log_transform(image)
+        elif choice == '5':
+            power_law(image)
+        elif choice == '6':
+            bit_plane_slicing(image)
+        elif choice == '0':
+            break
+        else:
+            print("Invalid choice")
+
+        cv2.waitKey(0)
+        cv2.destroyAllWindows()
