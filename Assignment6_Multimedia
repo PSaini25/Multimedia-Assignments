@@ -1,0 +1,138 @@
+import cv2
+import numpy as np
+import matplotlib.pyplot as plt
+
+# Load grayscale image
+img = cv2.imread('input.jpg')
+if img is None:
+    print("Error: input.jpg not found!")
+    exit()
+
+gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+
+# =========================================
+# (i) EDGE DETECTION METHODS
+# =========================================
+def edge_detection():
+    # Roberts Operator
+    kernelx = np.array([[1, 0], [0, -1]], dtype=int)
+    kernely = np.array([[0, 1], [-1, 0]], dtype=int)
+
+    roberts_x = cv2.filter2D(gray, -1, kernelx)
+    roberts_y = cv2.filter2D(gray, -1, kernely)
+    roberts = cv2.sqrt(np.square(roberts_x) + np.square(roberts_y))
+    roberts = np.uint8(roberts)
+
+    # Sobel
+    sobelx = cv2.Sobel(gray, cv2.CV_64F, 1, 0, ksize=3)
+    sobely = cv2.Sobel(gray, cv2.CV_64F, 0, 1, ksize=3)
+    sobel = cv2.magnitude(sobelx, sobely)
+    sobel = np.uint8(sobel)
+
+    # Prewitt
+    kernelx = np.array([[1, 0, -1], [1, 0, -1], [1, 0, -1]])
+    kernely = np.array([[1, 1, 1], [0, 0, 0], [-1, -1, -1]])
+
+    prewitt_x = cv2.filter2D(gray, -1, kernelx)
+    prewitt_y = cv2.filter2D(gray, -1, kernely)
+    prewitt = cv2.sqrt(np.square(prewitt_x) + np.square(prewitt_y))
+    prewitt = np.uint8(prewitt)
+
+    # Canny
+    canny = cv2.Canny(gray, 100, 200)
+
+    # Difference of Gaussian (DoG)
+    blur1 = cv2.GaussianBlur(gray, (5, 5), 1)
+    blur2 = cv2.GaussianBlur(gray, (5, 5), 2)
+    dog = cv2.absdiff(blur1, blur2)
+
+    # Laplacian of Gaussian (LoG)
+    log = cv2.GaussianBlur(gray, (5, 5), 0)
+    log = cv2.Laplacian(log, cv2.CV_64F)
+    log = np.uint8(np.absolute(log))
+
+    # Display results
+    titles = ['Original', 'Roberts', 'Sobel', 'Prewitt', 'Canny', 'DoG', 'LoG']
+    images = [gray, roberts, sobel, prewitt, canny, dog, log]
+
+    plt.figure(figsize=(12, 8))
+    for i in range(len(images)):
+        plt.subplot(3, 3, i+1)
+        plt.imshow(images[i], cmap='gray')
+        plt.title(titles[i])
+        plt.axis('off')
+
+    plt.show()
+
+
+# =========================================
+# (ii) HARRIS CORNER DETECTOR
+# =========================================
+def harris_corner():
+    gray_float = np.float32(gray)
+
+    corners = cv2.cornerHarris(gray_float, 2, 3, 0.04)
+
+    # Dilate to mark corners
+    corners = cv2.dilate(corners, None)
+
+    img_copy = img.copy()
+    img_copy[corners > 0.01 * corners.max()] = [0, 0, 255]
+
+    cv2.imshow("Harris Corners", img_copy)
+    cv2.waitKey(0)
+    cv2.destroyAllWindows()
+
+
+# =========================================
+# (iii) HOUGH LINE TRANSFORM
+# =========================================
+def hough_lines():
+    edges = cv2.Canny(gray, 50, 150)
+
+    lines = cv2.HoughLines(edges, 1, np.pi/180, 150)
+
+    img_copy = img.copy()
+
+    if lines is not None:
+        for rho, theta in lines[:, 0]:
+            a = np.cos(theta)
+            b = np.sin(theta)
+            x0 = a * rho
+            y0 = b * rho
+
+            x1 = int(x0 + 1000 * (-b))
+            y1 = int(y0 + 1000 * (a))
+            x2 = int(x0 - 1000 * (-b))
+            y2 = int(y0 - 1000 * (a))
+
+            cv2.line(img_copy, (x1, y1), (x2, y2), (0, 0, 255), 2)
+
+    cv2.imshow("Hough Lines", img_copy)
+    cv2.waitKey(0)
+    cv2.destroyAllWindows()
+
+
+# =========================================
+# MAIN MENU
+# =========================================
+if __name__ == "__main__":
+    while True:
+        print("\n--- Experiment 6 Menu ---")
+        print("1. Edge Detection")
+        print("2. Harris Corner Detection")
+        print("3. Hough Line Detection")
+        print("0. Exit")
+
+        choice = input("Enter your choice: ")
+
+        if choice == '1':
+            edge_detection()
+        elif choice == '2':
+            harris_corner()
+        elif choice == '3':
+            hough_lines()
+        elif choice == '0':
+            break
+        else:
+            print("Invalid choice")
